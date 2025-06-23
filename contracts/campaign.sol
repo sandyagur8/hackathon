@@ -3,9 +3,16 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "./PointsToken.sol";
 
 contract Campaign is Ownable {
     enum Status { Inactive, Active }
+    uint8 immutable totalPerBlock = 50;
+    uint16 immutable maxSubmissionsPerCampaign = 1500;
+    uint256 immutable maxRewardPerCampaign = 100000 * 10 ** 18;
+
 
     struct Submission {
         string submissionString; //CID
@@ -14,9 +21,15 @@ contract Campaign is Ownable {
         address submitter; //Address of the contributer
     }
 
+    struct Block {
+        uint256 campaignId; 
+        Submission submission; 
+    }
+
     struct CampaignStruct {
         Status status;
-        uint256[] ;
+        uint256[] submissionIds;
+        address winner;
     }
 
     // Mapping from campaignId to CampaignStruct
@@ -26,23 +39,24 @@ contract Campaign is Ownable {
     // Mapping from campaignId to total submissions (max 1500)
     mapping(uint256 => uint256) public totalSubmissions;
 
-    // ERC20 token for points
-    IERC20 public pointsToken;
+    mapping(address => uint256) public pendingRewards;
 
+    // PointsToken for points
+    PointsToken public pointsToken;
     // Submission counter
     uint256 public submissionCounter;
     // Campaign counter
     uint256 public campaignCounter;
-
+    uint256 public blockID;
     // Events
     event CampaignCreated(uint256 indexed campaignId);
-    event SubmissionAdded(uint256 indexed campaignId, uint256 indexed submissionId, address indexed submitter);
-    event WinnersSelected(uint256 indexed campaignId, uint256[] winnerSubmissionIds);
-    event PointsDispersed(uint256 indexed campaignId, address[] winners, uint256[] points);
+    event SubmissionAdded(uint256 indexed blockID);
+    event WinnersSelected(uint256 indexed campaignId, uint256 winnerSubmissionId, address winner);
+    event PointsDispersed(uint256 indexed campaignId, address winner, uint256 points);
     event PointsMinted(address indexed to, uint256 amount);
 
-    constructor(address _pointsToken) {
-        pointsToken = IERC20(_pointsToken);
+    constructor(address _pointsToken, address initialOwner) Ownable(initialOwner) {
+        pointsToken = PointsToken(_pointsToken);
     }
 
     // Only owner can create a campaign
@@ -53,45 +67,47 @@ contract Campaign is Ownable {
         return campaignCounter;
     }
 
-    // Add a submission to a campaign
-    function addSubmission(
-        uint256 campaignId,
-        string calldata submissionString,
-        string calldata model,
-        uint256 llmTokensUsed
-    ) external returns (uint256) {
-        require(campaigns[campaignId].status == Status.Active, "Campaign not active");
-        require(totalSubmissions[campaignId] < 1500, "Max submissions reached");
-        submissionCounter++;
-        submissions[submissionCounter] = Submission(submissionString, model, llmTokensUsed, msg.sender);
-        campaigns[campaignId].submissionIds.push(submissionCounter);
-        totalSubmissions[campaignId]++;
-        emit SubmissionAdded(campaignId, submissionCounter, msg.sender);
-        return submissionCounter;
+    function addSubmission(Block[] calldata _block) external onlyOwner {
+        for (uint256 i = 0; i < 50; i++) {
+            uint256 campaignId = _block[i].campaignId;
+            string calldata submissionString = _block[i].submission.submissionString;
+            string calldata model = _block[i].submission.model;
+            uint256 llmTokensUsed = _block[i].submission.llmTokensUsed;
+            address submitter = _block[i].submission.submitter;
+            require(campaigns[campaignId].status == Status.Active, "Campaign not active");
+            require(totalSubmissions[campaignId] < maxSubmissionsPerCampaign, "Max submissions reached");
+            submissionCounter++;
+            submissions[submissionCounter] = Submission(submissionString, model, llmTokensUsed, submitter);
+            campaigns[campaignId].submissionIds.push(submissionCounter);
+            totalSubmissions[campaignId]++;
+        }
+        emit SubmissionAdded(blockID);
+        blockID++;
     }
 
     // Only owner can select winners
-    function selectWinners(uint256 campaignId, uint256[] calldata winnerSubmissionIds) external onlyOwner {
+    function selectWinners(uint256 campaignId, uint256 winnerSubmissionId, address _winner) external onlyOwner {
         require(campaigns[campaignId].status == Status.Active, "Campaign not active");
-        require(winnerSubmissionIds.length == 50, "Must select 50 winners");
         // You can add logic to mark winners if needed
-        emit WinnersSelected(campaignId, winnerSubmissionIds);
+        campaigns[campaignId].winner = _winner;
+        pendingRewards[_winner] += maxRewardPerCampaign;
+        emit WinnersSelected(campaignId, winnerSubmissionId, _winner);
+        campaigns[campaignId].status = Status.Inactive; 
     }
 
     // Only owner can assign and disperse points
-    function dispersePoints(uint256 campaignId, address[] calldata winners, uint256[] calldata points) external onlyOwner {
-        require(winners.length == points.length, "Mismatched input lengths");
-        for (uint256 i = 0; i < winners.length; i++) {
-            require(pointsToken.transfer(winners[i], points[i]), "Transfer failed");
-        }
-        emit PointsDispersed(campaignId, winners, points);
+    function dispersePoints(uint256 campaignId) external onlyOwner {
+        require(campaigns[campaignId].status == Status.Inactive, "Campaign Winners Not Selected");
+        address winner = campaigns[campaignId].winner;
+        uint256 reward = pendingRewards[winner];
+        require(pointsToken.transfer(winner, reward), "Transfer failed");
+        emit PointsDispersed(campaignId, winner, reward);
+        pendingRewards[winner] = 0;
     }
 
-    // Only owner can mint points (if the ERC20 supports minting)
+    // Only owner can mint points using PointsToken
     function mintPoints(address to, uint256 amount) external onlyOwner {
-        // This assumes the ERC20 token has a mint function and the contract is the minter
-        // You may need to use a custom interface if using OpenZeppelin's ERC20Mintable
-        // Example: ICustomMintable(address(pointsToken)).mint(to, amount);
+        pointsToken.mint(to, amount);
         emit PointsMinted(to, amount);
     }
 }

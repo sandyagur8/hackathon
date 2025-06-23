@@ -7,16 +7,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 /**
- * @title BaseToken
- * @dev A simple ERC20 token contract optimized for Base blockchain
+ * @title PointsToken
+ * @dev ERC20 token for campaign points/rewards
  * Features:
  * - Standard ERC20 functionality
  * - Burnable tokens
  * - Permit functionality for gasless approvals
  * - Ownable for admin functions
+ * - Mintable by owner and authorized contracts
  */
-contract pROAST is ERC20, ERC20Burnable, Ownable, ERC20Permit {
-    uint256 public constant INITIAL_SUPPLY = 100000000 * 10**18; // 100 million tokens
+contract PointsToken is ERC20, ERC20Burnable, Ownable, ERC20Permit {
+    uint256 public constant INITIAL_SUPPLY = 1000000 * 10**18; // 1 million tokens
 
     constructor(
         string memory name,
