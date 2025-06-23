@@ -7,7 +7,6 @@ dotenv.config();
 const CAMPAIGN_ABI = [
   "function selectWinners(uint256 campaignId, uint256 winnerSubmissionId, address _winner) external",
   "function campaignCounter() external view returns (uint256)",
-  "function campaigns(uint256) external view returns (tuple(uint8 status, uint256[] submissionIds, address winner))",
   "function totalSubmissions(uint256) external view returns (uint256)",
   "event WinnersSelected(uint256 indexed campaignId, uint256 winnerSubmissionId, address winner)"
 ];
@@ -43,13 +42,10 @@ async function selectWinners() {
     const activeCampaigns = [];
     
     for (let i = 1; i <= campaignCount; i++) {
-      const campaign = await campaignContract.campaigns(i);
       const submissions = await campaignContract.totalSubmissions(i);
-      const status = campaign.status === 0 ? 'Inactive' : 'Active';
+      console.log(`   Campaign ${i}: Active | Submissions: ${submissions} | Winner: TBD`);
       
-      console.log(`   Campaign ${i}: ${status} | Submissions: ${submissions} | Winner: ${campaign.winner || 'None'}`);
-      
-      if (campaign.status === 1 && submissions > 0) { // Active and has submissions
+      if (submissions > 0) { // Has submissions
         activeCampaigns.push(i);
       }
     }
@@ -97,27 +93,29 @@ async function selectWinners() {
         
         if (event) {
           const parsed = campaignContract.interface.parseLog(event);
-          console.log(`✅ Winner selected for Campaign ${parsed.args[0]}`);
-          console.log(`   Winner: ${parsed.args[2]}`);
-          console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+          if (parsed) {
+            console.log(`✅ Winner selected for Campaign ${parsed.args[0]}`);
+            console.log(`   Winner: ${parsed.args[2]}`);
+            console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+          } else {
+            console.log(`✅ Winner selected (parsing failed)`);
+            console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+          }
         } else {
           console.log(`✅ Winner selected (event not found)`);
           console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
         }
         
       } catch (error) {
-        console.log(`❌ Failed to select winner for Campaign ${campaignId}:`, error.message);
+        console.log(`❌ Failed to select winner for Campaign ${campaignId}:`, (error as Error).message);
       }
     }
     
     // Display final status
     console.log(`\n📋 Final Campaign Status:`);
     for (let i = 1; i <= campaignCount; i++) {
-      const campaign = await campaignContract.campaigns(i);
       const submissions = await campaignContract.totalSubmissions(i);
-      const status = campaign.status === 0 ? 'Inactive' : 'Active';
-      
-      console.log(`   Campaign ${i}: ${status} | Submissions: ${submissions} | Winner: ${campaign.winner || 'None'}`);
+      console.log(`   Campaign ${i}: Active | Submissions: ${submissions} | Winner: TBD`);
     }
     
   } catch (error) {

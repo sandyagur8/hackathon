@@ -7,7 +7,6 @@ dotenv.config();
 const CAMPAIGN_ABI = [
   "function addSubmission(tuple(uint256 campaignId, tuple(string submissionString, string model, uint256 llmTokensUsed, address submitter) submission)[] calldata _content) external returns(uint256[] memory)",
   "function campaignCounter() external view returns (uint256)",
-  "function campaigns(uint256) external view returns (tuple(uint8 status, uint256[] submissionIds, address winner))",
   "function totalSubmissions(uint256) external view returns (uint256)",
   "event SubmissionAdded(uint256 indexed contentID)"
 ];
@@ -25,6 +24,7 @@ function generateSubmissions(campaignIds: number[]): any[] {
   ];
   
   for (let i = 0; i < 50; i++) {
+    // const campaignId = i%2==0 ? 1:5
     const campaignId = campaignIds[i % campaignIds.length];
     const model = models[i % models.length];
     const submitter = submitters[i % submitters.length];
@@ -79,15 +79,10 @@ async function addSubmissions() {
     const activeCampaigns = [];
     
     for (let i = 1; i <= campaignCount; i++) {
-      const campaign = await campaignContract.campaigns(i);
       const submissions = await campaignContract.totalSubmissions(i);
-      const status = campaign.status === 0 ? 'Inactive' : 'Active';
+      console.log(`   Campaign ${i}: Active | Submissions: ${submissions} | Winner: TBD`);
       
-      console.log(`   Campaign ${i}: ${status} | Submissions: ${submissions} | Winner: ${campaign.winner || 'None'}`);
-      
-      if (campaign.status === 1) { // Active
-        activeCampaigns.push(i);
-      }
+      activeCampaigns.push(i); // Assume all campaigns are active for now
     }
     
     if (activeCampaigns.length === 0) {
@@ -129,9 +124,14 @@ async function addSubmissions() {
     
     if (event) {
       const parsed = campaignContract.interface.parseLog(event);
-      console.log(`✅ Submissions added successfully!`);
-      console.log(`   Content ID: ${parsed.args[0]}`);
-      console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+      if (parsed) {
+        console.log(`✅ Submissions added successfully!`);
+        console.log(`   Content ID: ${parsed.args[0]}`);
+        console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+      } else {
+        console.log(`✅ Submissions added (parsing failed)`);
+        console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+      }
     } else {
       console.log(`✅ Submissions added (event not found)`);
       console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
@@ -140,11 +140,10 @@ async function addSubmissions() {
     // Display updated status
     console.log(`\n📋 Updated Campaign Status:`);
     for (let i = 1; i <= campaignCount; i++) {
-      const campaign = await campaignContract.campaigns(i);
       const submissions = await campaignContract.totalSubmissions(i);
-      const status = campaign.status === 0 ? 'Inactive' : 'Active';
+      const status = submissions > 0 ? 'Active' : 'Inactive';
       
-      console.log(`   Campaign ${i}: ${status} | Submissions: ${submissions} | Winner: ${campaign.winner || 'None'}`);
+      console.log(`   Campaign ${i}: ${status} | Submissions: ${submissions} | Winner: TBD`);
     }
     
     // Show distribution summary
@@ -155,7 +154,7 @@ async function addSubmissions() {
     }
     
   } catch (error) {
-    console.error('❌ Error adding submissions:', error);
+    console.error('❌ Error adding submissions:', (error as Error).message);
     process.exit(1);
   }
 }

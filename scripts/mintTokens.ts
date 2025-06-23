@@ -66,7 +66,7 @@ async function mintTokens() {
     console.log(`   Total supply: ${ethers.formatUnits(totalSupply, decimals)} ${tokenSymbol}`);
     
     // Calculate 10 million tokens
-    const mintAmount = ethers.parseUnits("10000000", decimals); // 10 million tokens
+    const mintAmount = ethers.parseUnits("10000000", Number(decimals)); // 10 million tokens
     console.log(`\n🪙 Minting ${ethers.formatUnits(mintAmount, decimals)} ${tokenSymbol}...`);
     
     // Mint tokens to your address
@@ -95,14 +95,17 @@ async function mintTokens() {
     console.log(`   Total supply increased by: ${ethers.formatUnits(supplyIncrease, decimals)} ${tokenSymbol}`);
     
     // Verify the mint was successful
-    if (balanceIncrease === mintAmount && supplyIncrease === mintAmount) {
+    if (balanceIncrease.toString() === mintAmount.toString() && supplyIncrease.toString() === mintAmount.toString()) {
       console.log(`\n🎉 Mint operation verified successfully!`);
     } else {
       console.log(`\n⚠️  Warning: Mint amounts don't match expected values`);
+      console.log(`   Expected: ${ethers.formatUnits(mintAmount, decimals)} ${tokenSymbol}`);
+      console.log(`   Balance increase: ${ethers.formatUnits(balanceIncrease, decimals)} ${tokenSymbol}`);
+      console.log(`   Supply increase: ${ethers.formatUnits(supplyIncrease, decimals)} ${tokenSymbol}`);
     }
     
   } catch (error) {
-    console.error('❌ Error minting tokens:', error);
+    console.error('❌ Error minting tokens:', (error as Error).message);
     process.exit(1);
   }
 }

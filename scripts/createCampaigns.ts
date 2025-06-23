@@ -7,7 +7,7 @@ dotenv.config();
 const CAMPAIGN_ABI = [
   "function createCampaign() external returns (uint256)",
   "function campaignCounter() external view returns (uint256)",
-  "function campaigns(uint256) external view returns (tuple(uint8 status, uint256[] submissionIds, address winner))",
+  "function totalSubmissions(uint256) external view returns (uint256)",
   "event CampaignCreated(uint256 indexed campaignId)"
 ];
 
@@ -59,8 +59,13 @@ async function createCampaigns() {
       
       if (event) {
         const parsed = campaignContract.interface.parseLog(event);
-        console.log(`✅ Campaign ${parsed.args[0]} created successfully`);
-        console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+        if (parsed) {
+          console.log(`✅ Campaign ${parsed.args[0]} created successfully`);
+          console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+        } else {
+          console.log(`✅ Campaign created (parsing failed)`);
+          console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
+        }
       } else {
         console.log(`✅ Campaign created (event not found)`);
         console.log(`   Transaction: https://testnet.bscscan.com/tx/${tx.hash}`);
@@ -75,13 +80,12 @@ async function createCampaigns() {
     // Display all campaigns
     console.log(`\n📋 Campaign Summary:`);
     for (let i = 1; i <= finalCount; i++) {
-      const campaign = await campaignContract.campaigns(i);
-      const status = campaign.status === 0 ? 'Inactive' : 'Active';
-      console.log(`   Campaign ${i}: ${status} | Winner: ${campaign.winner || 'None'}`);
+      const submissions = await campaignContract.totalSubmissions(i);
+      console.log(`   Campaign ${i}: Active | Submissions: ${submissions} | Winner: TBD`);
     }
     
   } catch (error) {
-    console.error('❌ Error creating campaigns:', error);
+    console.error('❌ Error creating campaigns:', (error as Error).message);
     process.exit(1);
   }
 }
