@@ -44,12 +44,12 @@ async function main() {
   console.log(`Deployer: ${deployer.address}`);
   console.log(`PointsToken: ${pointsTokenAddress}`);
   console.log(`Campaign: ${campaignAddress}`);
-  console.log(`Initial PointsToken Supply: ${ethers.formatEther(totalSupply)} POINTS`);
+  console.log(`Initial PointsToken Supply: ${ethers.formatEther(totalSupply)} pROAST`);
   console.log(`PointsToken Owner: ${pointsTokenOwner}`);
   console.log(`Campaign Owner: ${campaignOwner}`);
 
   console.log("\n=== Contract Verification ===");
-  console.log(`PointsToken: npx hardhat verify --network bnbTestnet ${pointsTokenAddress} "Campaign Points" "POINTS" "${deployer.address}"`);
+  console.log(`PointsToken: npx hardhat verify --network bnbTestnet ${pointsTokenAddress} "Roast Points" "pROAST" "${deployer.address}"`);
   console.log(`Campaign: npx hardhat verify --network bnbTestnet ${campaignAddress} "${pointsTokenAddress}" "${deployer.address}"`);
 
   console.log("\n=== Next Steps ===");

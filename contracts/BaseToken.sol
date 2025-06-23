@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
  * - Permit functionality for gasless approvals
  * - Ownable for admin functions
  */
-contract pROAST is ERC20, ERC20Burnable, Ownable, ERC20Permit {
+contract BaseToken is ERC20, ERC20Burnable, Ownable, ERC20Permit {
     uint256 public constant INITIAL_SUPPLY = 100000000 * 10**18; // 100 million tokens
 
     constructor(

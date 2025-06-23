@@ -1,5 +1,5 @@
 import type { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox-viem";
+import "@nomicfoundation/hardhat-toolbox";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -34,9 +34,7 @@ const config: HardhatUserConfig = {
     },
     bnbTestnet: {
       url: process.env.BNB_TESTNET_RPC_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
-      accounts: process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "54f58990de2e2896aa6a0d1d34e0bfcd047b752f193fb92ca8c0469da2e4954e" 
-        ? [process.env.PRIVATE_KEY] 
-        : [],
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 97,
     },
   },

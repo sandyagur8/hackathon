@@ -21,7 +21,7 @@ contract Campaign is Ownable {
         address submitter; //Address of the contributer
     }
 
-    struct Block {
+    struct content {
         uint256 campaignId; 
         Submission submission; 
     }
@@ -47,10 +47,10 @@ contract Campaign is Ownable {
     uint256 public submissionCounter;
     // Campaign counter
     uint256 public campaignCounter;
-    uint256 public blockID;
+    uint256 public contentID;
     // Events
     event CampaignCreated(uint256 indexed campaignId);
-    event SubmissionAdded(uint256 indexed blockID);
+    event SubmissionAdded(uint256 indexed contentID);
     event WinnersSelected(uint256 indexed campaignId, uint256 winnerSubmissionId, address winner);
     event PointsDispersed(uint256 indexed campaignId, address winner, uint256 points);
     event PointsMinted(address indexed to, uint256 amount);
@@ -67,23 +67,33 @@ contract Campaign is Ownable {
         return campaignCounter;
     }
 
-    function addSubmission(Block[] calldata _block) external onlyOwner {
-        for (uint256 i = 0; i < 50; i++) {
-            uint256 campaignId = _block[i].campaignId;
-            string calldata submissionString = _block[i].submission.submissionString;
-            string calldata model = _block[i].submission.model;
-            uint256 llmTokensUsed = _block[i].submission.llmTokensUsed;
-            address submitter = _block[i].submission.submitter;
-            require(campaigns[campaignId].status == Status.Active, "Campaign not active");
-            require(totalSubmissions[campaignId] < maxSubmissionsPerCampaign, "Max submissions reached");
-            submissionCounter++;
-            submissions[submissionCounter] = Submission(submissionString, model, llmTokensUsed, submitter);
-            campaigns[campaignId].submissionIds.push(submissionCounter);
-            totalSubmissions[campaignId]++;
-        }
-        emit SubmissionAdded(blockID);
-        blockID++;
+function addSubmission(content[] calldata _content) external onlyOwner returns(uint256[] memory) {
+    // Initialize memory array with fixed size
+    uint256[] memory currentSubmissions = new uint256[](50);
+    
+    for (uint256 i = 0; i < 50; i++) {
+        uint256 campaignId = _content[i].campaignId;
+        string calldata submissionString = _content[i].submission.submissionString;
+        string calldata model = _content[i].submission.model;
+        uint256 llmTokensUsed = _content[i].submission.llmTokensUsed;
+        address submitter = _content[i].submission.submitter;
+        
+        require(campaigns[campaignId].status == Status.Active, "Campaign not active");
+        require(totalSubmissions[campaignId] < maxSubmissionsPerCampaign, "Max submissions reached");
+        
+        submissionCounter++;
+        submissions[submissionCounter] = Submission(submissionString, model, llmTokensUsed, submitter);
+        campaigns[campaignId].submissionIds.push(submissionCounter);
+        totalSubmissions[campaignId]++;
+        
+        // Directly assign to return array
+        currentSubmissions[i] = submissionCounter;
     }
+    
+    emit SubmissionAdded(contentID);
+    contentID++;
+    return currentSubmissions;
+}
 
     // Only owner can select winners
     function selectWinners(uint256 campaignId, uint256 winnerSubmissionId, address _winner) external onlyOwner {

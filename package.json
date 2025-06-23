@@ -20,7 +20,13 @@
         "coverage": "hardhat coverage",
         "check-staked": "hardhat run scripts/checkStakedBalance.ts"
     },
-    "keywords": ["base", "blockchain", "ethereum", "hardhat", "solidity"],
+    "keywords": [
+        "base",
+        "blockchain",
+        "ethereum",
+        "hardhat",
+        "solidity"
+    ],
     "author": "",
     "license": "MIT",
     "devDependencies": {
